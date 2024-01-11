@@ -1,14 +1,14 @@
 # Meetings notes
 
 ## Meeting 1.
-* **DATE:**
-* **ASSISTANTS:**
+* **DATE: 11.1.2024**
+* **ASSISTANTS: none**
 
 ### Minutes
-*Summary of what was discussed during the meeting*
+*Just setting up the environments for project development.*
 
 ### Action points
-*List here the actions points discussed with assistants*
+*Try to participate in today's meeting ;-)*
 
 
 
