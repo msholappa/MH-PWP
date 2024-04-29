@@ -1,0 +1,13 @@
+# Only the first constant must be edited for a new environment
+SERVER_NAME = "127.0.0.1:5000"
+SPORTBET_NAMESPACE = "sportbet"
+SPORTBET_API_KEY_NAME = "Sportbet-API-Key"
+JSON = "application/json"
+MASON = "application/vnd.mason+json"
+LINK_RELATIONS_URL = "/link-relations/"
+ERROR_PROFILE = "/profiles/error/"
+EVENT_PROFILE = "/profiles/event/"
+MEMBER_PROFILE = "/profiles/member/"
+GAME_PROFILE = "/profiles/game/"
+BET_PROFILE = "/profiles/bet/"
+BETSTATUS_PROFILE = "/profiles/betstatus/"

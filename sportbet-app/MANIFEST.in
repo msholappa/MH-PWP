@@ -1,0 +1,2 @@
+graft sportbet/static
+global-exclude *.pyc

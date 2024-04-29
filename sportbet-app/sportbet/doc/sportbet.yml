@@ -1,0 +1,424 @@
+openapi: 3.0.3
+
+servers:
+- url: /api
+
+info:
+  contact:
+    email: mikkohola@gmail.com
+    name: Mikko Holappa (API author)
+    url: http://totally.not.placehold.er/
+  description: "Hypermedia based API which enables users to add bets (game result guesses) for games in events.
+    It stores the bets, and calculates points for each bet according to the games
+    played in the event. The user with the highest total points\nwins the betting."
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://not.relevant.here.now/
+  title: Sportbet API
+  version: 1.0.0
+
+components:
+  parameters:
+    event:
+      description: Selected event's unique name
+      in: path
+      name: event
+      required: true
+      schema:
+        type: string
+    member:
+      description: Selected member's unique nickname
+      in: path
+      name: member
+      required: true
+      schema:
+        type: string
+    game:
+      description: Selected game's unique number (may be any string)
+      in: path
+      name: game
+      required: true
+      schema:
+        type: string
+  schemas:
+    Event:
+      properties:
+        name:
+          description: Event's unique name
+          type: string
+      required:
+      - name
+      type: object
+    Member:
+      properties:
+        nickname:
+          description: Event participant's unique nickname
+          type: string
+      required:
+      - nickname
+      type: object
+    Game:
+      properties:
+        game_nbr:
+          description: Unique game number (or name) in event
+          type: string
+        home_team:
+          description: Home team's name
+          type: string
+        guest_team:
+          description: Guest team's name
+          type: string
+        home_goals:
+          description: Home team's goals
+          type: integer
+        guest_goals:
+          description: Guest team's goals
+          type: integer
+      required:
+      - game_nbr
+      - home_team
+      - guest_team
+      - home_goals
+      - guest_goals
+      type: object
+    Bet:
+      properties:
+        nickname:
+          description: Nickname of the bet giver
+          type: string
+        game_nbr:
+          description: Game number for the bet
+          type: string
+        home_team:
+          description: Home team's name
+          type: string
+        guest_team:
+          description: Guest team's name
+          type: string  
+        home_goals:
+          description: Home team's goals
+          type: integer
+        guest_goals:
+          description: Guest team's goals
+          type: integer
+      required:
+      - game_nbr
+      - home_goals
+      - guest_goals
+      type: object
+  securitySchemes:
+    sportbetKey:
+      in: header
+      name: Sportbet-Api-Key
+      type: apiKey
+
+paths:
+  /events/:
+    get:
+      description: Get all events in the system
+      responses:
+        '200':
+          description: List all events (in body "items")
+          content:
+            application/json:
+              example:
+              - name: Bandyliiga-2023-2024
+              - name: Bandy-Worldcup-2024
+              - name: Icehockey-Worldcup-2024
+  /events/{event}/:
+    get:
+      description: Get the given event data
+      responses:
+        '200':
+          description: Event's data
+          content:
+            application/json:
+              example:
+                name: Bandyliiga-2023-2024
+        '404':
+          description: Event was not found
+    parameters:
+    - $ref: '#/components/parameters/event'
+  /{event}/members/:
+    get:
+      description: Get event members
+      responses:
+        '200':
+          description: List of members (in body "items")
+          content:
+            application/json:
+              example:
+              - nickname: mholappa
+              - nickname: pohtonen
+    post:
+      description: Add new member to event
+      requestBody:
+        description: JSON document with new member data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Member'
+            example:
+              nickname: mholappa
+      responses:
+        '201':
+          description: Member added successfully
+          headers:
+            Location: 
+              description: URI of the added member
+              schema: 
+                type: string
+        '400':
+          description: Invalid JSON document, or missing parameters or wrong parameter format
+        '409':
+          description: Nickname already in use
+        '415':
+          description: Unsupported media type, JSON required
+    parameters:
+    - $ref: '#/components/parameters/event'
+  /{event}/members/{member}/:
+    get:
+      description: Get given member's data
+      responses:
+        '200':
+          description: Members's data
+          content:
+            application/json:
+              example:
+                nickname: mholappa
+        '404':
+          description: Member not found
+    delete:
+      description: Delete member and his/her bets in event
+      responses:
+        '204':
+          description: Member deleted
+          headers:
+            Location: 
+              description: URI for event member listing
+              schema: 
+                type: string
+        '404':
+          description: Member not found
+    parameters:
+    - $ref: '#/components/parameters/event'
+    - $ref: '#/components/parameters/member'
+  /{event}/games/:
+    get:
+      description: List event games
+      responses:
+        '200':
+          description: Get event games (in body "items", goals -1 if game not played yet)
+          content:
+            application/json:
+              example:
+              - game_nbr: 1
+                home_team: OLS
+                guest_team: OPS
+                home_goals: 5
+                guest_goals: 4
+              - game_nbr: 2
+                home_team: JPS
+                guest_team: Akilles
+                home_goals: -1
+                guest_goals: -1
+    post:
+      description: Add new game to event
+      requestBody:
+        description: JSON document with new game data (goals -1 if game not played yet)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Game'
+            example:
+              game_nbr: 7
+              home_team: OPS
+              guest_team: OLS
+              home_goals: -1
+              guest_goals: -1
+      responses:
+        '201':
+          description: Game added successfully
+          headers:
+            Location: 
+              description: URI of the added game
+              schema: 
+                type: string
+        '400':
+          description: Invalid JSON document, or missing parameter or wrong parameter format
+        '409':
+          description: Game with the same game number/name already exists
+        '415':
+          description: Unsupported media type, JSON required
+    parameters:
+    - $ref: '#/components/parameters/event'
+  /{event}/games/{game}/:
+    get:
+      description: Get given game's data
+      responses:
+        '200':
+          description: Game's data
+          content:
+            application/json:
+              example:
+                game_nbr: 1
+                home_team: OPS
+                guest_team: OLS
+                home_goals: 4
+                guest_goals: 7
+        '404':
+          description: Game not found
+    put:
+      description: Replace game's data with new values
+      requestBody:
+        description: JSON document with new game data
+        content:
+          application/json:
+            example:
+              game_nbr: Game's unique number/name
+              home_goals: Home team goals (-1 = game not played yet)
+              guest_goals: Guest team goals (-1 = game not played yet)
+            schema:
+              $ref: '#/components/schemas/Game'
+      responses:
+        '204':
+          description: Game data updated
+          headers:
+            Location: 
+              description: URI of the updated game
+              schema: 
+                type: string
+        '400':
+          description: Invalid JSON document, or missing parameter or wrong parameter format
+        '404':
+          description: Game not found
+        '415':
+          description: Unsupported media type, JSON required
+    delete:
+      description: Delete game and its bets in event
+      responses:
+        '204':
+          description: Game and its bets deleted
+          headers:
+            Location: 
+              description: URI of the event games listing
+              schema: 
+                type: string
+        '404':
+          description: Game not found
+    parameters:
+    - $ref: '#/components/parameters/event'
+    - $ref: '#/components/parameters/game'
+  /{event}/bets/:
+    get:
+      description: Get all bets in event
+      responses:
+        '200':
+          description: Event bets (in body "items")
+          content:
+            application/json:
+              example:
+              - nickname: mholappa
+                game_nbr: 1
+                home_team: OPS
+                guest_team: OLS
+                home_goals: 3
+                guest_goals: 7
+              - nickname: pohtonen
+                game_nbr: 2
+                home_team: JPS
+                guest_team: Akilles
+                home_goals: 0
+                guest_goals: 1
+    parameters:
+    - $ref: '#/components/parameters/event'
+  /{event}/bets/{member}/:
+    get:
+      description: Same as /event/bets/ but only for given member
+      responses:
+        '200':
+          description: See /event/bets/
+    post:
+      description: Add or update member's bet for the given game
+      requestBody:
+        description: JSON document with bet data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bet'
+            example:
+              game_nbr: 1
+              home_goals: 3
+              guest_goals: 5
+      responses:
+        '201':
+          description: Bet added/updated successfully
+          headers:
+            Location: 
+              description: URI of member's bets
+              schema: 
+                type: string
+        '400':
+          description: Invalid JSON document, or missing parameter, or wrong parameter format
+        '401':
+          description: Negative bet goals given
+        '404':
+          description: Game not found
+        '415':
+          description: Unsupported media type, JSON required
+    parameters:
+    - $ref: '#/components/parameters/event'
+    - $ref: '#/components/parameters/member'
+  /{event}/bets/{game}/:
+    get:
+      description: Same as /event/bets/ but only for given game
+      responses:
+        '200':
+          description: See /event/bets/
+    parameters:
+    - $ref: '#/components/parameters/event'
+    - $ref: '#/components/parameters/game'
+  /{event}/betstatus/:
+    get:
+      description: Get event bet status (member ranking according to the betting points)
+      responses:
+        '200':
+          description: Event members with their total points, ordered by points (in body "items")
+          content:
+            application/json:
+              example:
+              - nickname: mholappa
+                points: 8
+              - nickname: pohtonen
+                points: 5
+    parameters:
+    - $ref: '#/components/parameters/event'
+  /{event}/betstatus/{member}/:
+    get:
+      description: Get member bets and associated points for games (in body "items")
+      responses:
+        '200':
+          description: Member's bets with given points for each game (in body "items")
+          content:
+            application/json:
+              example:
+              - game_nbr: 1
+                points: 0
+                result: 3-4
+                bet: 1-1
+              - game_nbr: 2
+                points: 1
+                result: 3-4
+                bet: 1-3
+              - game_nbr: 3
+                points: 2
+                result: 2-4
+                bet: 4-6
+              - game_nbr: 4
+                points: 3
+                result: 3-4
+                bet: 3-4
+    parameters:
+    - $ref: '#/components/parameters/event'
+    - $ref: '#/components/parameters/member'
