@@ -20,41 +20,52 @@
   You can install this package with the following steps:
 
   1. Copy whole folder /sportbet-app to your preferred folder.
-   * Edit SERVER_NAME constant in /sportbet/constants.py and /client/client.py 
+   * You must edit SERVER_NAME constant in /sportbet/constants.py and /client/client.py 
 
-  2. Install all the required packages to your Python environment.
+  2. Install all the required packages to your Python environment. File requirements.txt
+     contains all the packages obtained via command: 
+       "pip freeze > requirements.txt"
+     You can install these with command:
+       "pip install -r requirements.txt"
 
-  3. Go to parent folder of /sportbet-app and install the package: pip install -e sportbet-app
+  3. Go to parent folder of /sportbet-app and install the package:
+       "pip install -e sportbet-app"
+     This command installs the sportbet-package to your system and utilizes file setup.py.
 
-  4. Set Flask environment variable for the package: 
+  4. For running the API-server, set Flask environment variable for the sportbet app: 
    * Windows PowerShell: $env:FLASK_APP="sportbet.py"
    * UNIX: set FLASK_APP="sportbet.py"
 
   5. Edit function db_fill() in file /sportbet/models.py (create event, games and members)
 
   6. Give the following commands in folder /sportbet-app to create and populate the database:
-   * flask db-init
-   * flask db-fill --> COPY-PASTE THE OUTPUT API-KEY to client.py constant SPORTBET_API_KEY_VALUE
-   * flask run --> API-server is now running and can be used by client-software
-   * flask db-clear --> the whole database is removed, run the previous commands again
+       "flask db-init"
+       "flask db-fill" --> COPY-PASTE THE OUTPUT API-KEY to client.py constant SPORTBET_API_KEY_VALUE
+       "flask run" --> API-server is now running and can be used by client-software
+       "flask db-clear" --> the whole database is removed, run the previous commands again
 
 3. TESTING
 
-  Package has a subfolder /tests. You can run "pytest" in that folder.
+  Package has a subfolder /tests. Run Pytest in that folder with:
+    "pytest"
+  All the tests should pass with green color, without any error or warning messages.
 
   Testing is performed only to resources (API). Separate testing is 
   not relevant for database model or methods etc. API-testing covers
   all relevant lower level functionality.
   
   You can also use internet browser to test/debug the API. For this you need to edit
-  function validate_API_key() in file utils.py: disable API-key validation by uncommenting
-  the line "return func(self, *args, **kwargs)". 
+  function 
+    *validate_API_key()*
+  in file utils.py: disable API-key validation by uncommenting the line
+    "return func(self, *args, **kwargs)"
 
 4. CLIENT SOFTWARE
 
   Subfolder /client has a totally automated hypermedia client for testing the API.
   
-  Client can be run with command "python client.py"
+  Client can be run with command
+    "python client.py"
   
   Client software goes to the API entry-point, and lists possible actions/resources.
   User selects the action, and gives possible data required by the schema of the resource.
@@ -92,5 +103,4 @@
   
   7. Member-specific API-keys to allow only own bet manipulation.
   
-  8. Proper profile descriptions (now only dummy files for the mechanism verification)
-
+  8. Proper profile descriptions (now only dummy files for the mechanism verification).
