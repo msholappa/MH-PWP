@@ -20,10 +20,10 @@
   You can install this package with the following steps:
 
   1. Copy whole folder /sportbet-app to your preferred folder.
-   * You must edit SERVER_NAME constant in /sportbet/constants.py and /client/client.py 
+   * You must edit SERVER_NAME constant in /sportbet/constants.py and /client/client.py
 
   2. Install all the required packages to your Python environment. File requirements.txt
-     contains all the packages obtained via command: 
+     contains all the packages obtained via command:
        "pip freeze > requirements.txt"
      You can install these with command:
        "pip install -r requirements.txt"
@@ -32,7 +32,7 @@
        "pip install -e sportbet-app"
      This command installs the sportbet-package to your system and utilizes file setup.py.
 
-  4. For running the API-server, set Flask environment variable for the sportbet app: 
+  4. For running the API-server, set Flask environment variable for the sportbet app:
    * Windows PowerShell: $env:FLASK_APP="sportbet.py"
    * UNIX: set FLASK_APP="sportbet.py"
 
@@ -55,7 +55,7 @@
   all relevant lower level functionality.
   
   You can also use internet browser to test/debug the API. For this you need to edit
-  function 
+  function:
     *validate_API_key()*
   in file utils.py: disable API-key validation by uncommenting the line
     "return func(self, *args, **kwargs)"
@@ -89,7 +89,7 @@
 
   1. Support for multiple events at the same time.
   
-  2. Support for a dedicated ADMIN-only API-key for ADMIN-actions.
+  2. Support for a ADMIN-only API-key for ADMIN-actions.
 
   2. ADMIN-action: event-collection POST method to create events (now hard-coded event).
 
@@ -97,7 +97,7 @@
 
   4. Start times for games to allow betting only before the game has begun.
 
-  5. PUT method for bets updates (update now via POST, non-standard approach)
+  5. BetItem resource and PUT method for bet updates (now add/edit via POST, non-standard approach)
   
   6. Member e-mail support and automatic betting status e-mails whenever new game result is input.
   
