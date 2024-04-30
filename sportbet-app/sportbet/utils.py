@@ -319,7 +319,7 @@ class SportbetBuilder(MasonBuilder):
     def add_control_add_bet(self, event, member):
         self.add_control_post(
             SPORTBET_NAMESPACE + ":add-bet",
-            "Add bet for " + member.nickname,
+            "Add or edit bet for " + member.nickname,
             url_for("api.betsmember", event=event, member=member),
             Bet.json_schema(full_format=False)
         )
