@@ -340,7 +340,7 @@ paths:
         '200':
           description: See /event/bets/
     post:
-      description: Add or update member's bet for the given game
+      description: Add member's bet for the given game
       requestBody:
         description: JSON document with bet data
         content:
@@ -353,7 +353,7 @@ paths:
               guest_goals: 5
       responses:
         '201':
-          description: Bet added/updated successfully
+          description: Bet added successfully
           headers:
             Location: 
               description: URI of member's bets
@@ -365,20 +365,41 @@ paths:
           description: Negative bet goals given
         '404':
           description: Game not found
+        '409':
+          description: Bet already exists for this member and game (use PUT instead)
+        '415':
+          description: Unsupported media type, JSON required
+    put:
+      description: Update member's bet for the given game
+      requestBody:
+        description: JSON document with bet data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bet'
+            example:
+              game_nbr: 1
+              home_goals: 3
+              guest_goals: 5
+      responses:
+        '204':
+          description: Bet updated successfully
+          headers:
+            Location: 
+              description: URI of member's bets
+              schema: 
+                type: string
+        '400':
+          description: Invalid JSON document, or missing parameter, or wrong parameter format
+        '401':
+          description: Negative bet goals given
+        '404':
+          description: Game or member's bet not found
         '415':
           description: Unsupported media type, JSON required
     parameters:
     - $ref: '#/components/parameters/event'
     - $ref: '#/components/parameters/member'
-  /{event}/bets/{game}/:
-    get:
-      description: Same as /event/bets/ but only for given game
-      responses:
-        '200':
-          description: See /event/bets/
-    parameters:
-    - $ref: '#/components/parameters/event'
-    - $ref: '#/components/parameters/game'
   /{event}/betstatus/:
     get:
       description: Get event bet status (member ranking according to the betting points)

@@ -11,7 +11,14 @@ from sportbet.models import Event, Member, Game, Bet, ApiKey
 #  Used by multiple other files.
 # ------------------------------------------------------
 
-# Return local file content in response 
+"""
+Return local file content in response.
+    Parameters:
+     -  filename: full path to the file
+    Returns:
+     - 200 and file contents if successful
+     - 400 if file not found
+"""
 def send_local_file(filename):
     try:
         file = open(filename, "r") 
@@ -23,11 +30,27 @@ def send_local_file(filename):
     hdrs = {"Content-type": content_type}
     return Response(body, status = 200, headers=hdrs)
 
+"""
+Debug function to print the given message to the console.
+Hard-coded, switch "pass" and print() to disable/enable debugging.
+    Parameters:
+    - msg: message string to be printed
+    Returns:
+    - none
+"""
 def debug_print(msg):
     pass
     #print(msg)
 
-# Crete MASON-error for failed requests
+"""
+Crete MASON-error for failed requests.
+    Parameters:
+    - status: status code of the response
+    - title: error title as string
+    - msg: optional further explanation of the error
+    Returns:
+    - Response object for the error
+"""
 def error_response(status, title, msg=None):
     target_url = request.path
     data = MasonBuilder(resource_url=target_url)
@@ -35,7 +58,10 @@ def error_response(status, title, msg=None):
     data.add_control("profile", href=ERROR_PROFILE)
     return Response(json.dumps(data), status, mimetype=MASON)
 
-# Admin API-key validation - not used currently
+"""
+Admin API-key validation wrapper function - not used currently.
+To be used for admin API functionality in the future versions of API.
+"""
 def require_ADMIN_key(func):
     def wrapper(*args, **kwargs):
         key_hash = ApiKey.key_hash(request.headers.get(SPORTBET_API_KEY_NAME, "").strip())
@@ -45,11 +71,21 @@ def require_ADMIN_key(func):
         raise Forbidden
     return wrapper
 
-# Non-admin user API-key validation
+"""
+API-key validation, use as wrapper for each resource method which needs to 
+be protected from the outsiders.
+
+API-key is created by admin with click command "flask db-fill", save the 
+printed key for client software.
+
+NOTE: enable/disable for testing (browser usually) by commenting/un-commenting
+      the line 
+      "return func(self, *args, **kwargs)"
+"""
 def validate_API_key(func):
     def wrapper(self, *args, **kwargs):
         # Enable browser testing by uncommenting next line
-        # return func(self, *args, **kwargs)
+        return func(self, *args, **kwargs)
         if SPORTBET_API_KEY_NAME in request.headers:
             key_hash = ApiKey.key_hash(request.headers.get(SPORTBET_API_KEY_NAME).strip())
             db_key = ApiKey.query.filter_by(admin=False).first()
@@ -58,10 +94,12 @@ def validate_API_key(func):
         raise Forbidden
     return wrapper
     
-# ----------------- CONVERTERS -------------------------
-#  Convert string-identifier <--> Python database object
-# ------------------------------------------------------
-
+"""
+-------------------------------- CONVERTERS -------------------------------
+ Convert string-identifier <--> Python database object.
+ Registered in __init.py__ for resources using object identifiers in URLs. 
+--------------------------------------------------------------------------- 
+"""
 class EventConverter(BaseConverter):
     def to_python(self, event_name):
         db_obj = Event.query.filter_by(name=event_name).first()
@@ -212,7 +250,11 @@ class MasonBuilder(dict):
             method="DELETE",
             title=title,
         )
-        
+
+"""
+API-specific MASON-builder. Resources use these classes and methods to 
+create hypertext-responses e.g. for automated clients.
+"""      
 class SportbetBuilder(MasonBuilder):
 
     # GET controls to show items
@@ -319,7 +361,7 @@ class SportbetBuilder(MasonBuilder):
     def add_control_add_bet(self, event, member):
         self.add_control_post(
             SPORTBET_NAMESPACE + ":add-bet",
-            "Add or edit bet for " + member.nickname,
+            "Add bet for " + member.nickname,
             url_for("api.betsmember", event=event, member=member),
             Bet.json_schema(full_format=False)
         )
@@ -330,4 +372,10 @@ class SportbetBuilder(MasonBuilder):
             "Edit game",
             url_for("api.gameitem", event=event, game=game),
             Game.json_schema(only_goals=True)
+        )
+    def add_control_edit_bet(self, event, member):
+        self.add_control_put(
+            "Edit bet",
+            url_for("api.betsmember", event=event, member=member),
+            Bet.json_schema(full_format=False)
         )

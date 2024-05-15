@@ -68,7 +68,6 @@ class MemberItem(Resource):
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.memberitem", event=event, member=member), title="This resource")
         body.add_control("profile", MEMBER_PROFILE, title="Member profile")
-        body.add_control_single_event(event)
         body.add_control_all_members(event)
         body.add_control_member_bets(event, member)
         body.add_control_betting_status(event, member)

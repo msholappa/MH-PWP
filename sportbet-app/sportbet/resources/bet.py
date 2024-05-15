@@ -46,6 +46,7 @@ class BetsMember(Resource):
         body.add_control("self", url_for("api.betsmember", event=event, member=member), title="This resource")
         body.add_control_all_bets(event)
         body.add_control_add_bet(event, member)
+        body.add_control_edit_bet(event, member)
         bets = Bet.query.filter_by(member=member).join(Bet.game).order_by(Game.game_nbr).all()
         body["items"] = []
         for bet in bets:
@@ -57,8 +58,42 @@ class BetsMember(Resource):
     @validate_API_key
     def post(self, event, member):
         """
-        Add new bet if not existing for this member for the given game.
-        If bet is already found, update bet data (PUT method not needed).
+        Add new bet for the given member (if not existing for the given game).
+        """
+        try:
+            if not request.json:
+                return error_response(415, "Unsupported media type", "JSON required")
+            validate(request.json, Bet.json_schema(full_format=False))
+            bet = Bet()
+            bet.deserialize(request.json)
+            if bet.home_goals < 0 or bet.guest_goals < 0:
+                return error_response(401, "Bet goals must not be negative")
+            game = Game.query.filter_by(event=event, game_nbr=bet.game_nbr).first()
+            if not game:
+                return error_response(404, "Game not found")
+            # check bet not already existing
+            old_bet = Bet.query.filter_by(game=game, member=member).first()
+            if old_bet:
+                return error_response(409, "Bet already exists for the given member and game")
+            # set relations and save the bet
+            bet.member = member
+            bet.game = game
+            db.session.add(bet)
+            db.session.commit()
+            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname + "/" + game.home_team + "-" + game.guest_team + " " + str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet added")
+            hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
+            return Response(status=201, headers=hdrs)
+        except ValidationError as e:
+            return error_response(400, "Invalid JSON document", str(e))
+        except KeyError:
+            return error_response(400, "Missing parameter", "See schema requirements")
+        except ValueError:
+            return error_response(400, "Invalid parameter format", "See schema requirements")
+
+    @validate_API_key
+    def put(self, event, member):
+        """
+        Update bet for the given member.
         """
         try:
             if not request.json:
@@ -71,19 +106,15 @@ class BetsMember(Resource):
             game = Game.query.filter_by(event=event, game_nbr=request_bet.game_nbr).first()
             if not game:
                 return error_response(404, "Game not found")
-            # create new bet if old not found
             bet = Bet.query.filter_by(game=game, member=member).first()
-            status_code = 204
             if not bet:
-                status_code = 201
-                bet = Bet(member=member, game=game)
-                db.session.add(bet)
+                return error_response(404, "Bet not found")
             bet.home_goals = request_bet.home_goals
             bet.guest_goals = request_bet.guest_goals
             db.session.commit()
-            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname + "/" + game.home_team + "-" + game.guest_team + " " + str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet saved")
+            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname + "/" + game.home_team + "-" + game.guest_team + " " + str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet updated")
             hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
-            return Response(status = status_code, headers = hdrs)
+            return Response(status = 204, headers = hdrs)
         except ValidationError as e:
             return error_response(400, "Invalid JSON document", str(e))
         except KeyError:
