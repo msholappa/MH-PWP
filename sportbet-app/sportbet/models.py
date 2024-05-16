@@ -238,8 +238,9 @@ class Bet(db.Model):
         }
         return schema
 
-# ----------------- CLICK COMMANDS ----------------
-        
+# ----------------------------------------------------------------------------
+# ----------------- CLICK COMMANDS TO INIT, POPULATE AND CLEAR DATABASE ------
+# ----------------------------------------------------------------------------        
 @click.command("db-init")
 @with_appcontext
 def db_init():
@@ -312,7 +313,11 @@ def db_fill():
     # USER-key: 4p9cZapvkQbjH_YtjJ5qQq0AttdyJZdjaiAPoa-odIk
     
     db.session.commit()
-    
+   
+# ----------------------------------------------------------------------------
+# ---------- CLICK COMMANDS TO EXPERIMENT WITH DOCUMENTATION (not used) ------
+# ----------------------------------------------------------------------------        
+   
 @click.command("test-document")
 @with_appcontext
 def test_document_command():
