@@ -19,9 +19,11 @@ import os
 # Constant definitions
 JSON = "application/json"
 MASON = "application/vnd.mason+json"
+# update to your actual server
 SERVER_NAME = "http://127.0.0.1:5000"
 API_ENTRY_URL = SERVER_NAME + "/api/"
 SPORTBET_API_KEY_NAME = "Sportbet-API-Key"
+# update if API-server admin changes this
 SPORTBET_API_KEY_VALUE = "xPMNOg98xOd8PmSGuRo9ygExpOOaebyDnLuRNCBxssQ"
 
 # Development time debug print - comment return to enable debug
@@ -165,6 +167,7 @@ def handle_response(resp):
                 return {}
             if "@controls" in body:
                 # Add all item 'self' controls to body controls for user selection
+                # Not required now
                 """if "items" in body:
                     for item in body["items"]:
                         if "@controls" in item:

@@ -71,6 +71,11 @@
   User selects the action, and gives possible data required by the schema of the resource.
   
   User actions are asked as long as the user interrupts the client software (with CTRL+C).
+  
+  Configuration required:
+   
+  1. SERVER_NAME: update this constant to reflect your actual installation URL
+  2. SPORTBET_API_KEY_VALUE: update this key if API-server admin changes the key
 
 5. HELP AND DOCUMENTATION
 
