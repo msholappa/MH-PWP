@@ -32,10 +32,10 @@
        "pip install -e sportbet-app"
      This command installs the sportbet-package to your system and utilizes file setup.py.
 
-  4. For running the API-server, set Flask environment variable for the sportbet app:
+  4. For running the API-server, set first the Flask environment variable for the sportbet app:
    * Windows PowerShell: $env:FLASK_APP="sportbet.py"
    * UNIX: set FLASK_APP="sportbet.py"
-
+   
   5. Edit function db_fill() in file /sportbet/models.py (create event, games and members)
 
   6. Give the following commands in folder /sportbet-app to create and populate the database:

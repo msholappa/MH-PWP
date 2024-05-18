@@ -130,8 +130,11 @@ class MemberConverter(BaseConverter):
         else:
             return db_obj.nickname
     
-# ----------------- MASON BUILDERS ----------------
-
+# ----------------- MASON BUILDERS ------------------------------------
+# Base class MasonBuilder has been copied from:
+# https://github.com/enkwolf/pwp-course-sensorhub-api-example/blob/\
+#         master/sensorhub/utils.py
+# ---------------------------------------------------------------------
 class MasonBuilder(dict):
     """
     A base class re-used from PWP excercises.
