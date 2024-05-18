@@ -1,3 +1,6 @@
+"""
+Resources for handling Member object operations.
+"""
 import json
 from jsonschema import validate, ValidationError
 from flask import Response, request, url_for
@@ -6,12 +9,13 @@ from sqlalchemy.exc import IntegrityError
 
 from sportbet import db
 from sportbet.models import Member
-from sportbet.constants import *
+from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, MEMBER_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, error_response, validate_API_key, debug_print
 
 # List of members
 class MemberCollection(Resource):
-    
+    """Resource class handling Member-object lists."""
+
     @validate_API_key
     def get(self, event):
         """
@@ -20,17 +24,21 @@ class MemberCollection(Resource):
         """
         body = SportbetBuilder()
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.membercollection", event=event), title="This resource")
+        body.add_control("self",
+                         url_for("api.membercollection", event=event),
+                         title="This resource")
         body.add_control_single_event(event)
         body.add_control_add_member(event)
         body["items"] = []
-        for m in event.members:
-            item = SportbetBuilder(m.serialize())
-            item.add_control("self", url_for("api.memberitem", event=event, member=m), title="Member " + m.nickname)
+        for member in event.members:
+            item = SportbetBuilder(member.serialize())
+            item.add_control("self",
+                             url_for("api.memberitem", event=event, member=member),
+                             title="Member " + member.nickname)
             item.add_control("profile", MEMBER_PROFILE, title="Member profile")
-            body["items"].append(item)            
+            body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON)
-   
+
     @validate_API_key
     def post(self, event):
         """
@@ -39,16 +47,19 @@ class MemberCollection(Resource):
         """
         try:
             if not request.json:
-                 return error_response(415, "Unsupported media type", "JSON required")
+                return error_response(415, "Unsupported media type", "JSON required")
             validate(request.json, Member.json_schema())
             member = Member(event=event)
             member.deserialize(request.json)
             debug_print("Add member " + member.nickname + " to event " + event.name)
             db.session.add(member)
             db.session.commit()
-            return Response(status=201, headers={"Location": url_for("api.memberitem", event=event, member=member)})
-        except ValidationError as e:
-            return error_response(400, "Invalid JSON document", str(e))
+            return Response(status=201,
+                            headers={"Location": url_for("api.memberitem",
+                                     event=event,
+                                     member=member)})
+        except ValidationError as exception:
+            return error_response(400, "Invalid JSON document", str(exception))
         except KeyError:
             return error_response(400, "Missing parameter", "See schema requirements")
         except ValueError:
@@ -58,7 +69,8 @@ class MemberCollection(Resource):
 
 # Single member
 class MemberItem(Resource):
-    
+    """Resource class handling single Member-object."""
+
     @validate_API_key
     def get(self, event, member):
         """
@@ -66,14 +78,16 @@ class MemberItem(Resource):
         """
         body = SportbetBuilder(member.serialize())
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.memberitem", event=event, member=member), title="This resource")
+        body.add_control("self",
+                         url_for("api.memberitem", event=event, member=member),
+                         title="This resource")
         body.add_control("profile", MEMBER_PROFILE, title="Member profile")
         body.add_control_all_members(event)
         body.add_control_member_bets(event, member)
         body.add_control_betting_status(event, member)
         body.add_control_delete_member(event, member)
         return Response(json.dumps(body), 200, mimetype=MASON)
-    
+
     @validate_API_key
     def delete(self, event, member):
         """
@@ -83,4 +97,5 @@ class MemberItem(Resource):
         debug_print("Delete member " + member.nickname + " from event " + event.name)
         db.session.delete(member)
         db.session.commit()
-        return Response(status=204, headers={"Location": url_for("api.membercollection", event=event)})
+        return Response(status=204,
+                        headers={"Location": url_for("api.membercollection", event=event)})

@@ -2,13 +2,12 @@ import json
 from flask import Response, url_for
 from flask_restful import Resource
 
-from sportbet import db
 from sportbet.models import Event
-from sportbet.constants import *
+from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, EVENT_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, validate_API_key
 
 class EventCollection(Resource):
-    
+
     @validate_API_key
     def get(self):
         """
@@ -20,15 +19,15 @@ class EventCollection(Resource):
         body.add_control("self", url_for("api.eventcollection"), title="All events")
         events = Event.query.all()
         body["items"] = []
-        for e in events:
-            item = SportbetBuilder(e.serialize())
-            item.add_control("self", url_for("api.eventitem", event=e), title=e.name)
+        for event in events:
+            item = SportbetBuilder(event.serialize())
+            item.add_control("self", url_for("api.eventitem", event=event), title=event.name)
             item.add_control("profile", EVENT_PROFILE, title="Event profile")
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON)
 
 class EventItem(Resource):
-    
+
     @validate_API_key
     def get(self, event):
         """

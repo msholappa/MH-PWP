@@ -1,3 +1,6 @@
+"""
+Sportbet package resource (URL to resource class) initializations.
+"""
 from flask import Blueprint
 from flask_restful import Api
 
@@ -7,8 +10,8 @@ from sportbet.resources.game import GameCollection, GameItem
 from sportbet.resources.bet import BetsAll, BetsMember
 from sportbet.resources.betstatus import BetStatus
 
-url_pre = "/api"
-api_bp = Blueprint("api", __name__, url_prefix=url_pre)
+URL_PRE = "/api"
+api_bp = Blueprint("api", __name__, url_prefix=URL_PRE)
 api = Api(api_bp)
 
 api.add_resource(EventCollection, "/events/")
@@ -24,4 +27,5 @@ api.add_resource(BetsAll, "/<event:event>/bets/", "/<event:event>/bets/game/<gam
 api.add_resource(BetsMember, "/<event:event>/bets/<member:member>/")
 
 # GET: list betting points for all members (1st path) or given member (2nd path)
-api.add_resource(BetStatus, "/<event:event>/betstatus/", "/<event:event>/betstatus/<member:member>/")
+api.add_resource(BetStatus, "/<event:event>/betstatus/",
+                            "/<event:event>/betstatus/<member:member>/")

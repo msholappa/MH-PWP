@@ -5,7 +5,7 @@ from flask_restful import Resource
 
 from sportbet import db
 from sportbet.models import Game, Bet
-from sportbet.constants import *
+from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, BET_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, error_response, validate_API_key, debug_print
 
 class BetsAll(Resource):
@@ -17,7 +17,11 @@ class BetsAll(Resource):
         """
         body = SportbetBuilder()
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.betsall", event=event, game=game), title="This resource")
+        body.add_control("self",
+                         url_for("api.betsall",
+                         event=event,
+                         game=game),
+                         title="This resource")
         body.add_control_single_event(event)
         if game is not None:
             body.add_control_all_bets(event)
@@ -43,7 +47,9 @@ class BetsMember(Resource):
         """
         body = SportbetBuilder()
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
-        body.add_control("self", url_for("api.betsmember", event=event, member=member), title="This resource")
+        body.add_control("self",
+                         url_for("api.betsmember", event=event, member=member),
+                         title="This resource")
         body.add_control_all_bets(event)
         body.add_control_add_bet(event, member)
         body.add_control_edit_bet(event, member)
@@ -54,7 +60,7 @@ class BetsMember(Resource):
             item.add_control("profile", BET_PROFILE, title="Bet profile")
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON)
-     
+
     @validate_API_key
     def post(self, event, member):
         """
@@ -80,11 +86,13 @@ class BetsMember(Resource):
             bet.game = game
             db.session.add(bet)
             db.session.commit()
-            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname + "/" + game.home_team + "-" + game.guest_team + " " + str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet added")
+            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname +\
+                        "/" + game.home_team + "-" + game.guest_team + " " +\
+                        str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet added")
             hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
             return Response(status=201, headers=hdrs)
-        except ValidationError as e:
-            return error_response(400, "Invalid JSON document", str(e))
+        except ValidationError as exception:
+            return error_response(400, "Invalid JSON document", str(exception))
         except KeyError:
             return error_response(400, "Missing parameter", "See schema requirements")
         except ValueError:
@@ -112,11 +120,14 @@ class BetsMember(Resource):
             bet.home_goals = request_bet.home_goals
             bet.guest_goals = request_bet.guest_goals
             db.session.commit()
-            debug_print(event.name + "/Game-" + game.game_nbr + "/" + member.nickname + "/" + game.home_team + "-" + game.guest_team + " " + str(bet.home_goals) + "-" + str(bet.guest_goals) + " bet updated")
+            debug_print(event.name + "/Game-" + game.game_nbr + "/" +\
+                        member.nickname + "/" + game.home_team + "-" +\
+                        game.guest_team + " " + str(bet.home_goals) +\
+                        "-" + str(bet.guest_goals) + " bet updated")
             hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
             return Response(status = 204, headers = hdrs)
-        except ValidationError as e:
-            return error_response(400, "Invalid JSON document", str(e))
+        except ValidationError as exception:
+            return error_response(400, "Invalid JSON document", str(exception))
         except KeyError:
             return error_response(400, "Missing parameter", "See schema requirements")
         except ValueError:

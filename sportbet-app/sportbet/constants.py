@@ -1,3 +1,6 @@
+"""
+Constant definitions for sportbet module.
+"""
 # Only the first constant must be edited for a new environment
 SERVER_NAME = "127.0.0.1:5000"
 SPORTBET_NAMESPACE = "sportbet"

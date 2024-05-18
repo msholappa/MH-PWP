@@ -1,27 +1,26 @@
+"""
+Utility functions to be used by multiple other files.
+"""
 import json
 import secrets
 from flask import Response, request, url_for
 from werkzeug.exceptions import Forbidden, NotFound
 from werkzeug.routing import BaseConverter
 
-from sportbet.constants import *
+from sportbet.constants import SPORTBET_NAMESPACE, SPORTBET_API_KEY_NAME, MASON, ERROR_PROFILE
 from sportbet.models import Event, Member, Game, Bet, ApiKey
 
-# ----------------- GENERAL FUNCTIONS ------------------
-#  Used by multiple other files.
-# ------------------------------------------------------
-
-"""
-Return local file content in response.
-    Parameters:
-     -  filename: full path to the file
-    Returns:
-     - 200 and file contents if successful
-     - 400 if file not found
-"""
 def send_local_file(filename):
+    """
+    Return local file content in response.
+        Parameters:
+         -  filename: full path to the file
+        Returns:
+         - 200 and file contents if successful
+         - 400 if file not found
+    """
     try:
-        file = open(filename, "r") 
+        file = open(filename, "r")
         body = file.read() #.strip()
         file.close()
     except:
@@ -30,62 +29,61 @@ def send_local_file(filename):
     hdrs = {"Content-type": content_type}
     return Response(body, status = 200, headers=hdrs)
 
-"""
-Debug function to print the given message to the console.
-Hard-coded, switch "pass" and print() to disable/enable debugging.
-    Parameters:
-    - msg: message string to be printed
-    Returns:
-    - none
-"""
 def debug_print(msg):
-    pass
+    """
+    Debug function to print the given message to the console.
+    Hard-coded, switch "pass" and print() to disable/enable debugging.
+        Parameters:
+        - msg: message string to be printed
+        Returns:
+        - none
+    """
+    return
     #print(msg)
 
-"""
-Crete MASON-error for failed requests.
-    Parameters:
-    - status: status code of the response
-    - title: error title as string
-    - msg: optional further explanation of the error
-    Returns:
-    - Response object for the error
-"""
 def error_response(status, title, msg=None):
+    """
+    Crete MASON-error for failed requests.
+        Parameters:
+        - status: status code of the response
+        - title: error title as string
+        - msg: optional further explanation of the error
+        Returns:
+        - Response object for the error
+    """
     target_url = request.path
     data = MasonBuilder(resource_url=target_url)
     data.add_error(title, msg)
     data.add_control("profile", href=ERROR_PROFILE)
     return Response(json.dumps(data), status, mimetype=MASON)
 
-"""
-Admin API-key validation wrapper function - not used currently.
-To be used for admin API functionality in the future versions of API.
-"""
-def require_ADMIN_key(func):
+def require_admin_key(func):
+    """
+    Admin API-key validation wrapper function - not used currently.
+    To be used for admin API functionality in the future versions of API.
+    """
     def wrapper(*args, **kwargs):
         key_hash = ApiKey.key_hash(request.headers.get(SPORTBET_API_KEY_NAME, "").strip())
         db_key = ApiKey.query.filter_by(admin=True).first()
         if secrets.compare_digest(key_hash, db_key.key):
-            return func(self, *args, **kwargs)
+            return func(*args, **kwargs)
         raise Forbidden
     return wrapper
 
-"""
-API-key validation, use as wrapper for each resource method which needs to 
-be protected from the outsiders.
-
-API-key is created by admin with click command "flask db-fill", save the 
-printed key for client software.
-
-NOTE: enable/disable for testing (browser usually) by commenting/un-commenting
-      the line 
-      "return func(self, *args, **kwargs)"
-"""
 def validate_API_key(func):
+    """
+    API-key validation, use as wrapper for each resource method which needs to
+    be protected from the outsiders.
+
+    API-key is created by admin with click command "flask db-fill", save the
+    printed key for client software.
+
+    NOTE: enable/disable for testing (browser usually) by commenting/un-commenting
+          the line "return func(self, *args, **kwargs)"
+    """
     def wrapper(self, *args, **kwargs):
         # Enable browser testing by uncommenting next line
-        return func(self, *args, **kwargs)
+        # return func(self, *args, **kwargs)
         if SPORTBET_API_KEY_NAME in request.headers:
             key_hash = ApiKey.key_hash(request.headers.get(SPORTBET_API_KEY_NAME).strip())
             db_key = ApiKey.query.filter_by(admin=False).first()
@@ -93,43 +91,45 @@ def validate_API_key(func):
                 return func(self, *args, **kwargs)
         raise Forbidden
     return wrapper
-    
-"""
--------------------------------- CONVERTERS -------------------------------
- Convert string-identifier <--> Python database object.
- Registered in __init.py__ for resources using object identifiers in URLs. 
---------------------------------------------------------------------------- 
-"""
+
+
+#-------------------------------- CONVERTERS -------------------------------
+# Convert string-identifier <--> Python database object.
+# Registered in __init.py__ for resources using object identifiers in URLs.
+#---------------------------------------------------------------------------
+
 class EventConverter(BaseConverter):
-    def to_python(self, event_name):
-        db_obj = Event.query.filter_by(name=event_name).first()
+    """Conversions between Event object and Event name"""
+    def to_python(self, value):
+        db_obj = Event.query.filter_by(name=value).first()
         if db_obj is None:
             raise NotFound
-        return db_obj    
-    def to_url(self, db_obj):
-        return db_obj.name
+        return db_obj
+    def to_url(self, value):
+        return value.name
 
 class GameConverter(BaseConverter):
-    def to_python(self, game_nbr):
-        db_obj = Game.query.filter_by(game_nbr=game_nbr).first()
+    """Conversions between Game object and Game name"""
+    def to_python(self, value):
+        db_obj = Game.query.filter_by(game_nbr=value).first()
         if db_obj is None:
             raise NotFound
-        return db_obj    
-    def to_url(self, db_obj):
-        return db_obj.game_nbr
+        return db_obj
+    def to_url(self, value):
+        return value.game_nbr
 
 class MemberConverter(BaseConverter):
-    def to_python(self, nickname):
-        db_obj = Member.query.filter_by(nickname=nickname).first()
+    """Conversions between Member object and Member name"""
+    def to_python(self, value):
+        db_obj = Member.query.filter_by(nickname=value).first()
         if db_obj is None:
             raise NotFound
-        return db_obj    
-    def to_url(self, db_obj):
-        if db_obj is None:
+        return db_obj
+    def to_url(self, value):
+        if value is None:
             return ""
-        else:
-            return db_obj.nickname
-    
+        return value.nickname
+
 # ----------------- MASON BUILDERS ------------------------------------
 # Base class MasonBuilder has been copied from:
 # https://github.com/enkwolf/pwp-course-sensorhub-api-example/blob/\
@@ -158,20 +158,20 @@ class MasonBuilder(dict):
             "@messages": [details],
         }
 
-    def add_namespace(self, ns, uri):
+    def add_namespace(self, namespace, uri):
         """
         Adds a namespace element to the object. A namespace defines where our
         link relations are coming from. The URI can be an address where
         developers can find information about our link relations.
 
-        : param str ns: the namespace prefix
+        : param str namespace: the namespace prefix
         : param str uri: the identifier URI of the namespace
         """
 
         if "@namespaces" not in self:
             self["@namespaces"] = {}
 
-        self["@namespaces"][ns] = {
+        self["@namespaces"][namespace] = {
             "name": uri
         }
 
@@ -200,13 +200,13 @@ class MasonBuilder(dict):
         Utility method for adding POST type controls. The control is
         constructed from the method's parameters. Method and encoding are
         fixed to "POST" and "json" respectively.
-        
+
         : param str ctrl_name: name of the control (including namespace if any)
         : param str href: target URI for the control
         : param str title: human-readable title for the control
         : param dict schema: a dictionary representing a valid JSON schema
         """
-    
+
         self.add_control(
             ctrl_name,
             href,
@@ -215,13 +215,13 @@ class MasonBuilder(dict):
             title=title,
             schema=schema
         )
-    
+
     def add_control_put(self, title, href, schema):
         """
         Utility method for adding PUT type controls. The control is
         constructed from the method's parameters. Control name, method and
         encoding are fixed to "edit", "PUT" and "json" respectively.
-        
+
         : param str href: target URI for the control
         : param str title: human-readable title for the control
         : param dict schema: a dictionary representing a valid JSON schema
@@ -235,7 +235,7 @@ class MasonBuilder(dict):
             title=title,
             schema=schema
         )
-        
+
     def add_control_delete(self, title, href):
         """
         Utility method for adding PUT type controls. The control is
@@ -246,7 +246,7 @@ class MasonBuilder(dict):
         : param str href: target URI for the control
         : param str title: human-readable title for the control
         """
-        
+
         self.add_control(
             SPORTBET_NAMESPACE + ":delete",
             href,
@@ -254,12 +254,11 @@ class MasonBuilder(dict):
             title=title,
         )
 
-"""
-API-specific MASON-builder. Resources use these classes and methods to 
-create hypertext-responses e.g. for automated clients.
-"""      
 class SportbetBuilder(MasonBuilder):
-
+    """
+    API-specific MASON-builder. Resources use these classes and methods to
+    create hypertext-responses e.g. for automated clients.
+    """
     # GET controls to show items
     def add_control_all_events(self):
         self.add_control(
@@ -281,7 +280,7 @@ class SportbetBuilder(MasonBuilder):
         )
     def add_control_single_game(self, event, game):
         self.add_control(
-            SPORTBET_NAMESPACE + ":game-" + game.game_nbr, # + "-" + game.home_team + "-" + game.guest_team,
+            SPORTBET_NAMESPACE + ":game-" + game.game_nbr,
             url_for("api.gameitem", event=event, game=game),
             title="Game #" + game.game_nbr
         )
@@ -301,7 +300,8 @@ class SportbetBuilder(MasonBuilder):
         control_name = ":bets-all"
         title = "Bets in " + event.name
         if game is not None:
-            title = "Bets for game-" + game.game_nbr + " " + game.home_team + " - " + game.guest_team
+            title = "Bets for game-" + game.game_nbr + " " +\
+                game.home_team + " - " + game.guest_team
             control_name = ":bets-game-" + game.game_nbr
         self.add_control(
             SPORTBET_NAMESPACE + control_name,
@@ -321,11 +321,9 @@ class SportbetBuilder(MasonBuilder):
             title="Member " + member.nickname
         )
     def add_control_betting_status(self, event, member):
-        nickname = ""
         control_name = ":status-all"
         title = "Betting status " + event.name
         if member is not None:
-            nickname = member.nickname + "/"
             title = member.nickname + " bet status " + event.name
             control_name = ":status-" + member.nickname
         self.add_control(
@@ -333,7 +331,7 @@ class SportbetBuilder(MasonBuilder):
             url_for("api.betstatus", event=event, member=member),
             title=title
         )
-        
+
     # DELETE controls to delete items
     def add_control_delete_game(self, event, game):
         self.add_control_delete(
@@ -345,7 +343,7 @@ class SportbetBuilder(MasonBuilder):
             "Delete member",
             url_for("api.memberitem", event=event, member=member)
         )
-        
+
     # POST controls to add items
     def add_control_add_member(self, event):
         self.add_control_post(
@@ -368,7 +366,7 @@ class SportbetBuilder(MasonBuilder):
             url_for("api.betsmember", event=event, member=member),
             Bet.json_schema(full_format=False)
         )
-    
+
     # PUT controls for editing items
     def add_control_edit_result(self, event, game):
         self.add_control_put(
