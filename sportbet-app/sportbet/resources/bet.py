@@ -1,3 +1,6 @@
+"""
+Resource classes to serve API-requests related to game bets.
+"""
 import json
 from jsonschema import validate, ValidationError
 from flask import Response, request, url_for
@@ -6,15 +9,14 @@ from flask_restful import Resource
 from sportbet import db
 from sportbet.models import Game, Bet
 from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, BET_PROFILE, MASON
-from sportbet.utils import SportbetBuilder, error_response, validate_API_key, debug_print
+from sportbet.utils import SportbetBuilder, error_response, validate_api_key,\
+                           debug_print, not_json_request
 
 class BetsAll(Resource):
-
-    @validate_API_key
+    """ Resource listing bets in the event or given game. """
+    @validate_api_key
     def get(self, event, game=None):
-        """
-        Get list of all bets in the event.
-        """
+        """ Get list of all bets in the event. """
         body = SportbetBuilder()
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self",
@@ -39,12 +41,10 @@ class BetsAll(Resource):
         return Response(json.dumps(body), 200, mimetype=MASON)
 
 class BetsMember(Resource):
-
-    @validate_API_key
+    """ Resource listing bets for the given member. """
+    @validate_api_key
     def get(self, event, member):
-        """
-        Get list of the given member's bets in the event.
-        """
+        """ Get list of the given member's bets in the event. """
         body = SportbetBuilder()
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self",
@@ -61,14 +61,12 @@ class BetsMember(Resource):
             body["items"].append(item)
         return Response(json.dumps(body), 200, mimetype=MASON)
 
-    @validate_API_key
+    @validate_api_key
     def post(self, event, member):
-        """
-        Add new bet for the given member (if not existing for the given game).
-        """
+        """ Add new bet for the given member (if not existing for the given game). """
+        if not_json_request(request):
+            return error_response(415, "Unsupported media type", "JSON required")
         try:
-            if not request.json:
-                return error_response(415, "Unsupported media type", "JSON required")
             validate(request.json, Bet.json_schema(full_format=False))
             bet = Bet()
             bet.deserialize(request.json)
@@ -92,20 +90,15 @@ class BetsMember(Resource):
             hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
             return Response(status=201, headers=hdrs)
         except ValidationError as exception:
+            # handles also KeyError and ValueError
             return error_response(400, "Invalid JSON document", str(exception))
-        except KeyError:
-            return error_response(400, "Missing parameter", "See schema requirements")
-        except ValueError:
-            return error_response(400, "Invalid parameter format", "See schema requirements")
 
-    @validate_API_key
+    @validate_api_key
     def put(self, event, member):
-        """
-        Update bet for the given member.
-        """
+        """ Update bet for the given member. """
+        if not_json_request(request):
+            return error_response(415, "Unsupported media type", "JSON required")
         try:
-            if not request.json:
-                return error_response(415, "Unsupported media type", "JSON required")
             validate(request.json, Bet.json_schema(full_format=False))
             request_bet = Bet()
             request_bet.deserialize(request.json)
@@ -127,8 +120,5 @@ class BetsMember(Resource):
             hdrs = {"Location": url_for("api.betsmember", event=event, member=member)}
             return Response(status = 204, headers = hdrs)
         except ValidationError as exception:
+            # handles also KeyError and ValueError
             return error_response(400, "Invalid JSON document", str(exception))
-        except KeyError:
-            return error_response(400, "Missing parameter", "See schema requirements")
-        except ValueError:
-            return error_response(400, "Invalid parameter format", "See schema requirements")

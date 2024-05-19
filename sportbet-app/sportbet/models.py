@@ -1,7 +1,11 @@
+"""
+API sportbet-app database model defintions and click-commands for
+initializing, filling and clearing the database.
+"""
 import hashlib
+import secrets
 import click
 from flask.cli import with_appcontext
-from werkzeug.exceptions import BadRequest
 from sportbet import db
 
 # ----------------- DATABASE MODEL ----------------
@@ -9,6 +13,7 @@ from sportbet import db
 # -------------------------------------------------
 
 class ApiKey(db.Model):
+    """ API-key model for API method call authentication. """
     key = db.Column(db.String(32), nullable=False, unique=True, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey("event.id"), nullable=True)
     admin =  db.Column(db.Boolean, default=False)
@@ -16,6 +21,7 @@ class ApiKey(db.Model):
 
     @staticmethod
     def key_hash(key):
+        """ Generate hash-key """
         return hashlib.sha256(key.encode()).digest()
 
 # Members in events (n-to-n relation, used only when multiple events supported)
@@ -25,29 +31,27 @@ event_members = db.Table(
     db.Column("member_id", db.Integer, db.ForeignKey("member.id"), primary_key=True)
 )
 
-# Event entity, parent class for members, games and bets
 class Event(db.Model):
+    """ Event database model, parent class for members, games and bets """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True, nullable=False)
     games = db.relationship("Game", cascade="all, delete-orphan", back_populates="event")
     # members = db.relationship("Member", secondary=event_members, back_populates="event_members")
     members = db.relationship("Member", cascade="all, delete-orphan", back_populates="event")
 
-    # from JSON to Python object
     def deserialize(self, dic):
-        try:
-            self.name = dic["name"]
-        except KeyError as exception:
-            raise BadRequest(description=str(exception))
+        """ From JSON to Python object - exception handling in schema validation """
+        self.name = dic["name"]
 
-    # from Python object to JSON
     def serialize(self):
+        """ From Python object to JSON """
         return {
             "name": self.name,
         }
 
     @staticmethod
     def json_schema():
+        """ Schema method for JSON-request validation and hypermedia """
         schema = {
             "type": "object",
             "required": ["name"]
@@ -59,8 +63,8 @@ class Event(db.Model):
         }
         return schema
 
-# Member in event, parent for member bets
 class Member(db.Model):
+    """ Member database model in event, parent for member bets """
     id = db.Column(db.Integer, primary_key=True)
     nickname = db.Column(db.String(64), unique=True, nullable=False)
     # email = db.Column(db.String(64), unique=True, nullable=False)
@@ -69,21 +73,19 @@ class Member(db.Model):
     # events = db.relationship("Event", secondary=event_members, back_populates="members")
     event = db.relationship("Event", back_populates="members")
 
-    # from JSON to Python object
     def deserialize(self, dic):
-        try:
-            self.nickname = dic["nickname"]
-        except KeyError as exception:
-            raise BadRequest(description=str(exception))
+        """ From JSON to Python object - exception handling in schema validation """
+        self.nickname = dic["nickname"]
 
-    # from Python object to JSON
     def serialize(self):
+        """ From Python object to JSON """
         return {
             "nickname": self.nickname
         }
 
     @staticmethod
     def json_schema():
+        """ Schema method for JSON-request validation and hypermedia """
         schema = {
             "type": "object",
             "required": ["nickname"]
@@ -95,8 +97,8 @@ class Member(db.Model):
         }
         return schema
 
-# Game in event, parent for game bets
 class Game(db.Model):
+    """ Game database model in event, parent for game bets """
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey("event.id", ondelete="CASCADE"))
     game_nbr = db.Column(db.String(64), unique=True, nullable=False)
@@ -107,20 +109,17 @@ class Game(db.Model):
     event = db.relationship("Event", back_populates="games")
     bets = db.relationship("Bet", cascade="all, delete-orphan", back_populates="game")
 
-    # from JSON to Python object
     def deserialize(self, dic, full_format=True):
-        try:
-            self.home_goals = dic["home_goals"]
-            self.guest_goals = dic["guest_goals"]
-            if full_format:
-                self.game_nbr = dic["game_nbr"]
-                self.home_team = dic["home_team"]
-                self.guest_team = dic["guest_team"]
-        except KeyError as exception:
-            raise BadRequest(description=str(exception))
+        """ From JSON to Python object - exception handling in schema validation """
+        self.home_goals = int(dic["home_goals"])
+        self.guest_goals = int(dic["guest_goals"])
+        if full_format:
+            self.game_nbr = dic["game_nbr"]
+            self.home_team = dic["home_team"]
+            self.guest_team = dic["guest_team"]
 
-    # from Python object to JSON
     def serialize(self):
+        """ From Python object to JSON """
         return {
             "game_nbr": self.game_nbr,
             "home_team": self.home_team,
@@ -131,6 +130,7 @@ class Game(db.Model):
 
     @staticmethod
     def json_schema(only_goals=False):
+        """ Schema method for JSON-request validation and hypermedia """
         schema = {
             "type": "object",
             "required": ["home_goals", "guest_goals"]
@@ -162,8 +162,8 @@ class Game(db.Model):
         }
         return schema
 
-# Bet for a member/game
 class Bet(db.Model):
+    """ Bet database model for a member/game """
     id = db.Column(db.Integer, primary_key=True)
     game_id = db.Column(db.Integer, db.ForeignKey("game.id", ondelete="CASCADE"))
     member_id = db.Column(db.Integer, db.ForeignKey("member.id", ondelete="CASCADE"))
@@ -172,18 +172,15 @@ class Bet(db.Model):
     member = db.relationship("Member", back_populates="bets")
     game = db.relationship("Game", back_populates="bets")
 
-    # from JSON to Python object
     def deserialize(self, dic):
-        try:
-            # game_nbr used only from client to API for avoiding URL-parameters
-            self.game_nbr = dic["game_nbr"]
-            self.home_goals = dic["home_goals"]
-            self.guest_goals = dic["guest_goals"]
-        except KeyError as exception:
-            raise BadRequest(description=str(exception))
+        """ From JSON to Python object - exception handling in schema validation """
+        # NOTE: non-self game_nbr used for more flexible API-client
+        self.game_nbr = dic["game_nbr"]
+        self.home_goals = int(dic["home_goals"])
+        self.guest_goals = int(dic["guest_goals"])
 
-    # from Python object to JSON
     def serialize(self):
+        """ From Python object to JSON """
         return {
             "nickname": self.member.nickname,
             "game_nbr": self.game.game_nbr,
@@ -195,6 +192,7 @@ class Bet(db.Model):
 
     @staticmethod
     def json_schema(full_format=True):
+        """ Schema method for JSON-request validation and hypermedia """
         schema = {
             "type": "object",
             "required": ["game_nbr", "home_goals", "guest_goals"]
@@ -236,11 +234,13 @@ class Bet(db.Model):
 @click.command("db-init")
 @with_appcontext
 def db_init():
+    """ Initialize database """
     db.create_all()
 
 @click.command("db-clear")
 @with_appcontext
 def db_clear():
+    """ Clear all content in database """
     db.session.query(Bet).delete()
     db.session.query(Game).delete()
     db.session.query(Member).delete()
@@ -253,7 +253,8 @@ def db_clear():
 @click.command("db-fill")
 @with_appcontext
 def db_fill():
-    # NOTE: this could be used to read events, members and games from a text file
+    """ Populate database (could be done by reading input file content) """
+
     # Event and games
     event = Event(name="Bandy-MM-2024")
     game1 = Game(event=event, game_nbr="1", home_team="OPS", guest_team="OLS",
@@ -283,8 +284,7 @@ def db_fill():
         db.session.add(member)
         idx += 2
 
-    # Generate API-keys
-    import secrets
+    # API-keys
     token = secrets.token_urlsafe()
     db_key_admin = ApiKey(
         key=ApiKey.key_hash(token),
@@ -307,39 +307,3 @@ def db_fill():
     # USER-key: 4p9cZapvkQbjH_YtjJ5qQq0AttdyJZdjaiAPoa-odIk
 
     db.session.commit()
-
-# ----------------------------------------------------------------------------
-# ---------- CLICK COMMANDS TO EXPERIMENT WITH DOCUMENTATION (not used) ------
-# ----------------------------------------------------------------------------
-
-@click.command("test-schema")
-@with_appcontext
-def test_schema_command():
-    import yaml
-    output = "\nEvent:\n" + yaml.dump(Event.json_schema())
-    output += "Member:\n" + yaml.dump(Member.json_schema())
-    output += "Game:\n" + yaml.dump(Game.json_schema(only_goals=False))
-    output += "Bet:\n" + yaml.dump(Bet.json_schema())
-    print(output)
-
-@click.command("update-schemas")
-def update_schemas_command():
-    import yaml
-
-    class literal_unicode(str):
-        pass
-
-    def literal_unicode_representer(dumper, data):
-        return dumper.represent_scalar(u'tag:yaml.org,2002:str', data, style='|')
-    yaml.add_representer(literal_unicode, literal_unicode_representer)
-
-    filename = "doc/sportbet.yml"
-    with open(filename) as source:
-        doc = yaml.safe_load(source)
-    schemas = doc["components"]["schemas"] = {}
-    for cls in [Event, Member, Game, Bet]:
-        schemas[cls.__name__] = cls.json_schema()
-
-    doc["info"]["description"] = literal_unicode(doc["info"]["description"])
-    with open(filename, "w") as target:
-        target.write(yaml.dump(doc, default_flow_style=False))

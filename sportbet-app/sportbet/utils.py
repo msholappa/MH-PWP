@@ -7,8 +7,14 @@ from flask import Response, request, url_for
 from werkzeug.exceptions import Forbidden, NotFound
 from werkzeug.routing import BaseConverter
 
-from sportbet.constants import SPORTBET_NAMESPACE, SPORTBET_API_KEY_NAME, MASON, ERROR_PROFILE
+from sportbet.constants import SPORTBET_NAMESPACE, SPORTBET_API_KEY_NAME, JSON, MASON, ERROR_PROFILE
 from sportbet.models import Event, Member, Game, Bet, ApiKey
+
+def not_json_request(req):
+    """ Check request content is JSON """
+    if req.headers['Content-Type'] != JSON or not req.json:
+        return True
+    return False
 
 def send_local_file(filename):
     """
@@ -20,11 +26,10 @@ def send_local_file(filename):
          - 400 if file not found
     """
     try:
-        file = open(filename, "r")
-        body = file.read() #.strip()
-        file.close()
-    except:
-        return "Target file could not be read.", 400
+        with open(filename, "r", encoding='ANSI') as file:
+            body = file.read() #.strip()
+    except FileNotFoundError:
+        return error_response(400, "Target file could not be read")
     content_type = "text/html"
     hdrs = {"Content-type": content_type}
     return Response(body, status = 200, headers=hdrs)
@@ -38,7 +43,7 @@ def debug_print(msg):
         Returns:
         - none
     """
-    return
+    return msg
     #print(msg)
 
 def error_response(status, title, msg=None):
@@ -70,7 +75,7 @@ def require_admin_key(func):
         raise Forbidden
     return wrapper
 
-def validate_API_key(func):
+def validate_api_key(func):
     """
     API-key validation, use as wrapper for each resource method which needs to
     be protected from the outsiders.
@@ -261,42 +266,49 @@ class SportbetBuilder(MasonBuilder):
     """
     # GET controls to show items
     def add_control_all_events(self):
+        """ Go to event list """
         self.add_control(
             SPORTBET_NAMESPACE + ":events-all",
             url_for("api.eventcollection"),
             title="All events"
         )
     def add_control_single_event(self, event):
+        """ Go to given event """
         self.add_control(
             SPORTBET_NAMESPACE + ":event-" + event.name,
             url_for("api.eventitem", event=event),
             title="Event " + event.name
         )
     def add_control_all_games(self, event):
+        """ Go to games list """
         self.add_control(
             SPORTBET_NAMESPACE + ":games-all",
             url_for("api.gamecollection", event=event),
             title="Games in " + event.name
         )
     def add_control_single_game(self, event, game):
+        """ Go to single game """
         self.add_control(
             SPORTBET_NAMESPACE + ":game-" + game.game_nbr,
             url_for("api.gameitem", event=event, game=game),
             title="Game #" + game.game_nbr
         )
     def add_control_all_bets(self, event):
+        """ Go to all event bets """
         self.add_control(
             SPORTBET_NAMESPACE + ":bets-all",
             url_for("api.betsall", event=event),
             title="Bets in " + event.name
         )
     def add_control_member_bets(self, event, member):
+        """ Go to single member's bets """
         self.add_control(
             SPORTBET_NAMESPACE + ":bets", #-" + member.nickname,
             url_for("api.betsmember", event=event, member=member),
             title=member.nickname + " bets in " + event.name
         )
     def add_control_game_bets(self, event, game):
+        """ Go to single game's bets """
         control_name = ":bets-all"
         title = "Bets in " + event.name
         if game is not None:
@@ -309,18 +321,21 @@ class SportbetBuilder(MasonBuilder):
             title=title
         )
     def add_control_all_members(self, event):
+        """ Go to all members """
         self.add_control(
             SPORTBET_NAMESPACE + ":members-all",
             url_for("api.membercollection", event=event),
             title="Members in " + event.name
         )
     def add_control_single_member(self, event, member):
+        """ Go to single member """
         self.add_control(
             SPORTBET_NAMESPACE + ":member-" + member.nickname,
             url_for("api.memberitem", event=event, member=member),
             title="Member " + member.nickname
         )
     def add_control_betting_status(self, event, member):
+        """ Go to betting status for whole event or single member """
         control_name = ":status-all"
         title = "Betting status " + event.name
         if member is not None:
@@ -334,11 +349,13 @@ class SportbetBuilder(MasonBuilder):
 
     # DELETE controls to delete items
     def add_control_delete_game(self, event, game):
+        """ Delete given game """
         self.add_control_delete(
             "Delete game",
             url_for("api.gameitem", event=event, game=game)
         )
     def add_control_delete_member(self, event, member):
+        """ Delete given member """
         self.add_control_delete(
             "Delete member",
             url_for("api.memberitem", event=event, member=member)
@@ -346,6 +363,7 @@ class SportbetBuilder(MasonBuilder):
 
     # POST controls to add items
     def add_control_add_member(self, event):
+        """ Add new member """
         self.add_control_post(
             SPORTBET_NAMESPACE + ":add-member",
             "Add member to " + event.name,
@@ -353,6 +371,7 @@ class SportbetBuilder(MasonBuilder):
             Member.json_schema()
         )
     def add_control_add_game(self, event):
+        """ Add new game """
         self.add_control_post(
             SPORTBET_NAMESPACE + ":add-game",
             "Add game to " + event.name,
@@ -360,6 +379,7 @@ class SportbetBuilder(MasonBuilder):
             Game.json_schema(only_goals=False)
         )
     def add_control_add_bet(self, event, member):
+        """ Add new bet """
         self.add_control_post(
             SPORTBET_NAMESPACE + ":add-bet",
             "Add bet for " + member.nickname,
@@ -369,12 +389,14 @@ class SportbetBuilder(MasonBuilder):
 
     # PUT controls for editing items
     def add_control_edit_result(self, event, game):
+        """ Edit existing game goals """
         self.add_control_put(
             "Edit game",
             url_for("api.gameitem", event=event, game=game),
             Game.json_schema(only_goals=True)
         )
     def add_control_edit_bet(self, event, member):
+        """ Edit existing bet goals """
         self.add_control_put(
             "Edit bet",
             url_for("api.betsmember", event=event, member=member),

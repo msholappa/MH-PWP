@@ -170,7 +170,7 @@ paths:
               schema: 
                 type: string
         '400':
-          description: Invalid JSON document, or missing parameters or wrong parameter format
+          description: Invalid JSON document (validation error)
         '409':
           description: Nickname already in use
         '415':
@@ -246,7 +246,7 @@ paths:
               schema: 
                 type: string
         '400':
-          description: Invalid JSON document, or missing parameter or wrong parameter format
+          description: Invalid JSON document (validation error)
         '409':
           description: Game with the same game number/name already exists
         '415':
@@ -290,7 +290,7 @@ paths:
               schema: 
                 type: string
         '400':
-          description: Invalid JSON document, or missing parameter or wrong parameter format
+          description: Invalid JSON document (validation error)
         '404':
           description: Game not found
         '415':
@@ -360,7 +360,7 @@ paths:
               schema: 
                 type: string
         '400':
-          description: Invalid JSON document, or missing parameter, or wrong parameter format
+          description: Invalid JSON document (validation error)
         '401':
           description: Negative bet goals given
         '404':
@@ -390,7 +390,7 @@ paths:
               schema: 
                 type: string
         '400':
-          description: Invalid JSON document, or missing parameter, or wrong parameter format
+          description: Invalid JSON document (validation error)
         '401':
           description: Negative bet goals given
         '404':

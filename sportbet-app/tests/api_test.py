@@ -1,7 +1,15 @@
 """
-Sportbet-API tests. Run "pytest" in this file's folder.
-"""
+Sportbet-API tests.
 
+Run "pytest" in this file's folder.
+
+For test coverage, use "pytest --cov-report term-missing --cov=sportbet"
+in folder /sportbet-app.
+
+NOTE: when implementing tests, you must know which objects 
+      are generated in _populate_db() - because tests are
+      performed for existing and non-existing objects!
+"""
 import json
 import os
 import pytest
@@ -65,7 +73,7 @@ def client():
 
 def _populate_db():
 
-    # Event and games
+    # Event (1) and games (4)
     e = Event(name=TEST_EVENT_NAME)
     game1 = Game(event=e, game_nbr="1", home_team="OPS", guest_team="OLS", home_goals=1, guest_goals=1)
     e.games.append(game1)
@@ -75,7 +83,7 @@ def _populate_db():
     e.games.append(Game(event=e, game_nbr="4", home_team="WP-35", guest_team="Kampparit", home_goals=-1, guest_goals=-1))
     db.session.add(e)
     
-    # Members and bets
+    # Members (3) and bets (2 per member, for game1 and game2)
     nicknames = ["mholappa", "pohtonen", "ahilmola"]
     idx = 1
     for name in nicknames:
@@ -122,7 +130,7 @@ def _get_bet_json(game_nbr="1", home_goals=1, guest_goals=1):
     Creates a valid bet JSON object to be used for POST (also update) tests.
     """
     return {"game_nbr": game_nbr, "home_goals": home_goals, "guest_goals":guest_goals}
-    
+
 def _check_namespace(client, response):
     """
     Checks that the correct namespace is found from the response body, and
@@ -152,7 +160,7 @@ def _check_control_delete_method(ctrl, client, obj):
     assert method == "delete"
     resp = client.delete(href)
     assert resp.status_code == 204
-    
+
 def _check_control_put_method(ctrl, client, obj, body):
     """
     Checks a PUT type control from a JSON object be it root document or an item
@@ -234,7 +242,7 @@ def _common_test_put(client, valid_url, invalid_url, item_object, remove_field):
     resp = client.put(valid_url, data="notjson", headers=Headers({"Content-Type": "text"}))
     assert resp.status_code in (400, 415)
     
-    # test with non-existing item
+    # test with invalid URL
     resp = client.put(invalid_url, json=item_object)
     assert resp.status_code == 404
     
@@ -248,10 +256,14 @@ def _common_test_put(client, valid_url, invalid_url, item_object, remove_field):
     assert resp.status_code in (400, 415)
 
 # Common POST-test for all resources
-def _common_test_post(client, resource_url, item_object, item_identifier, remove_field, perform_item_update=False):
+def _common_test_post(client, resource_url, invalid_url, item_object, item_identifier, remove_field):
     # test with wrong content type
-    resp = client.post(resource_url, data="notjson")
-    assert resp.status_code in (400, 415)
+    resp = client.post(resource_url, data="notjson", headers=Headers({"Content-Type": "text"}))
+    assert resp.status_code == 415
+    
+    # test with invalid URL
+    resp = client.put(invalid_url, json=item_object)
+    assert resp.status_code == 404
     
     # post item and see that it exists afterward
     resp = client.post(resource_url, json=item_object)
@@ -263,12 +275,9 @@ def _common_test_post(client, resource_url, item_object, item_identifier, remove
     resp = client.get(resp.headers["Location"])
     assert resp.status_code == 200
     
-    # send same data (existing item) again for 409 (or 204, if update via POST)
+    # send same data (existing item) again for 409
     resp = client.post(resource_url, json=item_object)
-    if perform_item_update:
-        assert resp.status_code == 204
-    else:
-        assert resp.status_code == 409
+    assert resp.status_code == 409
     
     # remove item field for 400 or 415 (if last field removed)
     item_object.pop(remove_field)
@@ -319,8 +328,10 @@ class TestMemberCollection(object):
 
     def test_post(self, client):
         item_object = _get_member_json("jsmith")
+        # add foo key (nickname is the only key, when removed, 415 raised --> no 400 raised ever without foo key)
+        item_object["foo"] = "foo"
         remove_field = "nickname"
-        _common_test_post(client, self.RESOURCE_URL, item_object, item_object["nickname"], remove_field)
+        _common_test_post(client, self.RESOURCE_URL, self.INVALID_URL, item_object, item_object["nickname"], remove_field)
     
 class TestMemberItem(object):
     
@@ -329,7 +340,6 @@ class TestMemberItem(object):
     
     def test_get(self, client):
         body = _common_test_get(client, self.RESOURCE_URL, self.INVALID_URL, "self")
-        _check_control_get_method("sportbet:event-" + TEST_EVENT_NAME, client, body)
         _check_control_get_method("sportbet:members-all", client, body)
         _check_control_get_method("sportbet:bets", client, body)
         _check_control_get_method("sportbet:status-mholappa", client, body)
@@ -357,7 +367,7 @@ class TestGameCollection(object):
     def test_post(self, client):
         item_object = _get_game_json("6", full_format=True)
         remove_field = "game_nbr"
-        _common_test_post(client, self.RESOURCE_URL, item_object, item_object["game_nbr"], remove_field)
+        _common_test_post(client, self.RESOURCE_URL, self.INVALID_URL, item_object, item_object["game_nbr"], remove_field)
         
 class TestGameItem(object):
     
@@ -408,17 +418,44 @@ class TestBetsMemberCollection(object):
                                 self.INVALID_URL,
                                 "sportbet:add-bet",
                                 2, # member bet item_cnt from db-populate
-                                _get_bet_json("3", 6, 6), # bet not existing yet for this game
+                                _get_bet_json("3", 6, 6), # bet not existing yet for this game, posted now
                                 True # no item resource path exists
                                )
         _check_control_get_method("sportbet:bets-all", client, body)
         
-    # This resource uses POST for adding a new bet and upudating an existing bet
+    # test POST for adding a new bet
     def test_post(self, client):
-        item_object = _get_bet_json("3", 7, 7) # bet already exists for this game
+        # test negative goals
+        item_object = _get_bet_json("4", -1, 0)
+        resp = client.post(self.RESOURCE_URL, json=item_object)
+        assert resp.status_code == 401
+        # test not existing game
+        item_object = _get_bet_json("100", 7, 7)
+        resp = client.post(self.RESOURCE_URL, json=item_object)
+        assert resp.status_code == 404
+        # test generally
+        item_object = _get_bet_json("4", 7, 7)
         remove_field = "home_goals"
-        # Perform update for bets via POST method (non-standard)
-        _common_test_post(client, self.RESOURCE_URL, item_object, None, remove_field, True)
+        _common_test_post(client, self.RESOURCE_URL, self.INVALID_URL, item_object, None, remove_field)
+        
+    # test PUT for updating an existing bet
+    def test_put(self, client):
+        # test negative goals
+        item_object = _get_bet_json("2", 0, -1)
+        resp = client.put(self.RESOURCE_URL, json=item_object)
+        assert resp.status_code == 401
+        # test non-existing game
+        item_object = _get_bet_json("100", 1, 1)
+        resp = client.put(self.RESOURCE_URL, json=item_object)
+        assert resp.status_code == 404
+        # test non-existing bet (game 4)
+        item_object = _get_bet_json("4", 1, 1)
+        resp = client.put(self.RESOURCE_URL, json=item_object)
+        assert resp.status_code == 404
+        # test generally
+        item_object = _get_bet_json("2", 8, 8)
+        remove_field = "home_goals"
+        _common_test_put(client, self.RESOURCE_URL, self.INVALID_URL, item_object, remove_field)
 
 class TestBetsGameCollection(object):
     
@@ -458,7 +495,7 @@ class TestBetStatusAllCollection(object):
 """
 BetStatus for a single member tests
 """      
-class TestBetStatusAllCollection(object):
+class TestBetStatusMemberCollection(object):
     
     RESOURCE_URL = "/api/" + TEST_EVENT_NAME + "/betstatus/mholappa/"
     INVALID_URL = "/api/" + TEST_EVENT_NAME + "/betstatus/non-existing-member/"

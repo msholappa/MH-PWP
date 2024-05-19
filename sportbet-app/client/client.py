@@ -117,7 +117,7 @@ def handle_response(resp):
     # Handle different content types
     elif "Content-type" in resp.headers:
 
-        # E.g profile files
+        # E.g profile files, just print them, no action
         if "text/" in resp.headers["Content-type"]:
             content = str(resp.content)
             re.sub('<[^<]+?>', '', content)
@@ -131,6 +131,7 @@ def handle_response(resp):
             body = resp.json()
             debug_print("RESPONSE BODY")
             debug_print(body)
+
             # Print collection items' data
             if "items" in body:
                 print("COLLECTION ITEMS\n")
@@ -144,6 +145,7 @@ def handle_response(resp):
                         else:
                             for item_ctrl in item["@controls"]:
                                 if item_ctrl != "profile":
+                                    # add relevant item contols for user selection
                                     item_ctrl_id = item_ctrl
                                     if item_ctrl == "self":
                                         item_ctrl_id = item_ctrl + str(idx)
@@ -159,10 +161,14 @@ def handle_response(resp):
                     if key not in("@namespaces", "@controls", "profile"):
                         item_info += key + ": " + str(body[key]) + "\n"
                 print(item_info)
+
+            # Print possible error response
             if "@error" in body:
                 print("\nERROR RESPONSE, code = " + str(resp.status_code))
                 print(body["@error"]["@message"] + "\n")
                 return {}
+
+            # Let user select the next action
             if "@controls" in body:
                 action = select_control_by_user(body["@controls"])
             else:
@@ -170,7 +176,7 @@ def handle_response(resp):
                 print(resp)
                 return {}
 
-        # JSON responses (errors mainly)
+        # JSON responses (system errors mainly)
         elif resp.headers["Content-type"] == JSON:
             print("Unexpected JSON response: " + str(resp.status_code))
             print(resp.reason)

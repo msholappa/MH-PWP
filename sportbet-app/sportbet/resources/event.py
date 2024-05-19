@@ -1,14 +1,17 @@
+"""
+Resource classes to serve API-requests related to events.
+"""
 import json
 from flask import Response, url_for
 from flask_restful import Resource
 
 from sportbet.models import Event
 from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, EVENT_PROFILE, MASON
-from sportbet.utils import SportbetBuilder, validate_API_key
+from sportbet.utils import SportbetBuilder, validate_api_key
 
 class EventCollection(Resource):
-
-    @validate_API_key
+    """ Resource class to list events in the system. """
+    @validate_api_key
     def get(self):
         """
         Get list of events in the system.
@@ -27,12 +30,10 @@ class EventCollection(Resource):
         return Response(json.dumps(body), 200, mimetype=MASON)
 
 class EventItem(Resource):
-
-    @validate_API_key
+    """ Resource class to get given event in the system. """
+    @validate_api_key
     def get(self, event):
-        """
-        Get given event in the system.
-        """
+        """ Get given event in the system. """
         body = SportbetBuilder(event.serialize())
         body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
         body.add_control("self", url_for("api.eventitem", event=event), title="This resource")

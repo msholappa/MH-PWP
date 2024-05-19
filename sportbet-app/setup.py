@@ -1,3 +1,6 @@
+"""
+sportbet-app package setup script.
+"""
 from setuptools import find_packages, setup
 
 setup(

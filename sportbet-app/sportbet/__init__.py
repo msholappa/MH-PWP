@@ -2,7 +2,8 @@
 Module sportbet initialization script.
 """
 import os
-from flask import Flask, Response, url_for
+from flask import Flask, Response, url_for, send_file
+from flasgger import Swagger
 from flask_sqlalchemy import SQLAlchemy
 from flask_caching import Cache
 from sportbet.constants import *
@@ -17,7 +18,6 @@ def create_app(test_config=None):
     """
     app = Flask(__name__, instance_relative_config=True)
 
-    from flasgger import Swagger
     app.config["SWAGGER"] = {
         "title": "Sportbet API",
         "openapi": "3.0.3",
@@ -48,6 +48,7 @@ def create_app(test_config=None):
     db.init_app(app)
     cache.init_app(app)
 
+    # own package imports here to avoid circular dependencies
     from . import models
     from . import api
     from sportbet.utils import EventConverter
@@ -57,8 +58,6 @@ def create_app(test_config=None):
     app.cli.add_command(models.db_init)
     app.cli.add_command(models.db_clear)
     app.cli.add_command(models.db_fill)
-    app.cli.add_command(models.test_schema_command)
-    app.cli.add_command(models.update_schemas_command)
 
     # Add converters for URL-name <--> Python object mapping
     app.url_map.converters["event"] = EventConverter
@@ -88,15 +87,14 @@ def create_app(test_config=None):
     @app.route(LINK_RELATIONS_URL)
     @app.route(LINK_RELATIONS_URL + "/<text>/")
     def send_link_relations(text=None):
-        from flask import send_file
         try:
             if text:
                 from sportbet.utils import send_local_file
                 return send_local_file(os.getcwd() + "/sportbet/static" +\
-                    LINK_RELATIONS_URL + "link-relations.html")
+                                       LINK_RELATIONS_URL + "link-relations.html")
             return send_file(os.getcwd() + "/sportbet/static" +\
                 LINK_RELATIONS_URL + 'link-relations.png')
-        except Exception as exception:
-            return str(exception)
+        except FileNotFoundError as exception:
+            return 404, str(exception)
 
     return app
