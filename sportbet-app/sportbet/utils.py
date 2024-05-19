@@ -163,7 +163,7 @@ class MasonBuilder(dict):
             "@messages": [details],
         }
 
-    def add_namespace(self, namespace, uri):
+    def add_namespace(self, namespace, uri="/api/"):
         """
         Adds a namespace element to the object. A namespace defines where our
         link relations are coming from. The URI can be an address where

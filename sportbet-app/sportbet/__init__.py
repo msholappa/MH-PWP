@@ -93,7 +93,7 @@ def create_app(test_config=None):
                 return send_local_file(os.getcwd() + "/sportbet/static" +\
                                        LINK_RELATIONS_URL + "link-relations.html")
             return send_file(os.getcwd() + "/sportbet/static" +\
-                LINK_RELATIONS_URL + 'link-relations.png')
+                             LINK_RELATIONS_URL + 'link-relations.png')
         except FileNotFoundError as exception:
             return 404, str(exception)
 

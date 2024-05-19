@@ -6,7 +6,7 @@ from flask import Response, url_for
 from flask_restful import Resource
 
 from sportbet.models import Game
-from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, BETSTATUS_PROFILE, MASON
+from sportbet.constants import SPORTBET_NAMESPACE, BETSTATUS_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, validate_api_key, debug_print
 
 # calculate points for the given bet
@@ -40,7 +40,7 @@ class BetStatus(Resource):
         information are returned.
         """
         body = SportbetBuilder()
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.betstatus",
                                  event=event,

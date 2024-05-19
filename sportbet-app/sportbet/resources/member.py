@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from sportbet import db
 from sportbet.models import Member
-from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, MEMBER_PROFILE, MASON
+from sportbet.constants import SPORTBET_NAMESPACE, MEMBER_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, error_response, validate_api_key,\
                            debug_print, not_json_request
 
@@ -23,7 +23,7 @@ class MemberCollection(Resource):
         Members are returned in body["items"] list.
         """
         body = SportbetBuilder()
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.membercollection", event=event),
                          title="This resource")
@@ -71,7 +71,7 @@ class MemberItem(Resource):
     def get(self, event, member):
         """ Get the given member in the given event. """
         body = SportbetBuilder(member.serialize())
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.memberitem", event=event, member=member),
                          title="This resource")

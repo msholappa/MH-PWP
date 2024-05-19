@@ -8,7 +8,7 @@ from flask_restful import Resource
 
 from sportbet import db
 from sportbet.models import Game
-from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, GAME_PROFILE, MASON
+from sportbet.constants import SPORTBET_NAMESPACE, GAME_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, error_response, validate_api_key,\
                            debug_print, not_json_request
 
@@ -18,7 +18,7 @@ class GameCollection(Resource):
     def get(self, event):
         """ Get games in given event. """
         body = SportbetBuilder()
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self", url_for("api.gamecollection", event=event), title="This resource")
         body.add_control_single_event(event)
         body.add_control_add_game(event)
@@ -64,7 +64,7 @@ class GameItem(Resource):
     def get(self, event, game):
         """ Get the given game in the given event. """
         body = SportbetBuilder(game.serialize())
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.gameitem", event=event, game=game),
                          title="This resource")

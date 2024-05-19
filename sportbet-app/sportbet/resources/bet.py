@@ -8,17 +8,18 @@ from flask_restful import Resource
 
 from sportbet import db
 from sportbet.models import Game, Bet
-from sportbet.constants import SPORTBET_NAMESPACE, LINK_RELATIONS_URL, BET_PROFILE, MASON
+from sportbet.constants import SPORTBET_NAMESPACE, BET_PROFILE, MASON
 from sportbet.utils import SportbetBuilder, error_response, validate_api_key,\
                            debug_print, not_json_request
 
 class BetsAll(Resource):
     """ Resource listing bets in the event or given game. """
+    
     @validate_api_key
     def get(self, event, game=None):
         """ Get list of all bets in the event. """
         body = SportbetBuilder()
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.betsall",
                          event=event,
@@ -42,11 +43,12 @@ class BetsAll(Resource):
 
 class BetsMember(Resource):
     """ Resource listing bets for the given member. """
+    
     @validate_api_key
     def get(self, event, member):
         """ Get list of the given member's bets in the event. """
         body = SportbetBuilder()
-        body.add_namespace(SPORTBET_NAMESPACE, LINK_RELATIONS_URL)
+        body.add_namespace(SPORTBET_NAMESPACE)
         body.add_control("self",
                          url_for("api.betsmember", event=event, member=member),
                          title="This resource")
